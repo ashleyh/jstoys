@@ -47,7 +47,7 @@ addToy({
                     p += 4
                 }
             }
-            ctx.putImageData(data, 0, 0, ux, uw, uw, uh)
+            ctx.putImageData(data, 0, 0, ux, uy, uw, uh)
         }
 
         function go() {
