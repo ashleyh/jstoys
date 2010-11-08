@@ -1,0 +1,129 @@
+<!--
+    Copyright 2010 Ashley Hewson
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>jstoys</title>
+		<link type="text/css" href="themes/base/jquery.ui.all.css" rel="stylesheet" />	
+        <script type="text/javascript" src="jquery/jquery-1.4.2.js"></script>
+        <script type="text/javascript" src="jquery/jquery-ui-1.8.1.custom.min.js"></script>
+        <script type="text/javascript">
+
+            // utils ---------------------------------------------------
+            function assert(b) {
+                if (!b) {
+                    console.log("assertion failure")
+                }
+            }
+
+            function randomInt(min,max) {
+                return min+Math.floor(Math.random() * max);
+            }
+            
+            function select(keys,valf,fitf) {
+                var best_key, best_val, best_fit;
+                var first = true;
+                for (var i in keys) {
+                    (function () {
+                        var key = keys[i];
+                        var val = valf(key);
+                        var fit = fitf(val);
+                        if (first || (fit > best_fit)) {
+                            best_key = key;
+                            best_val = val;
+                            best_fit = fit;
+                            first = false;
+                        }  
+                    })();
+                }
+                return {key: best_key, val: best_val, fit: best_fit}
+            }
+
+            // main stuff ---------------------------------------------------
+
+            var toys = []
+            var interval = null
+
+            function addToy(toy) {
+                toys.push(toy)
+            }
+            
+            function updateList(id) {
+                var ul = $("#toylist")
+                ul.empty()
+                for (var i0 in toys) { (function(i) { //eiw
+
+                    var a = $("<a/>").text(toys[i].name).click(
+                        function(){runToy(i);}
+                    ).button()
+                    var li = $("<li/>").append(a)
+                    ul.append(li)
+
+                })(i0) }
+            }
+
+            function runToy(id) {
+                var canvas = $("canvas")[0]
+                var context = canvas.getContext("2d")
+                var width = $(canvas).innerWidth()
+                var height = $(canvas).innerHeight()
+
+                var toy = toys[id];
+                var obj = new toy.constructor(context, width, height)
+                var dt = 30
+
+                if (interval != null) { window.clearInterval(interval) }
+                interval = window.setInterval(function(){ obj.tick() },dt)
+
+                updateList(id)
+            }
+
+            function main() {
+                runToy(0)
+            }
+        </script>
+        <script type="text/javascript" src="gl1.js"></script>
+        <script type="text/javascript" src="goons.js"></script>
+        <script type="text/javascript">
+            $(main)        
+        </script>
+        <style type="text/css">
+            #wrapper { width: 720px ; margin: 0 auto ; }
+
+            li {
+                display: inline;
+                list-style-type: none;
+                padding-right: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="wrapper">
+            <div id="header">
+                <h1>jstoys</h1>
+            </div>
+            <div id="canvas-wrapper">
+                <canvas width="720px" height="720px"></canvas>
+            </div>
+            <div id="stuffs">
+
+                select a toy: <ul id="toylist"></ul>
+            </div>
+
+        </div>
+    </body>
+</html>
