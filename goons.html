@@ -1,0 +1,196 @@
+<!--
+    Copyright 2010 Ashley Hewson
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>foo</title>
+        <script type="text/javascript" src="js/jquery-1.4.2.js"></script>
+        <script type="text/javascript">//<![CDATA[
+            var dt = 30
+
+            function assert(b) {
+                if (!b) {
+                    console.log("assertion failure")
+                }
+            }
+
+            function randomInt(min,max) {
+                return min+Math.floor(Math.random() * max);
+            }
+            
+            function select(keys,valf,fitf) {
+                var best_key, best_val, best_fit;
+                var first = true;
+                for (var i in keys) {
+                    (function () {
+                        var key = keys[i];
+                        var val = valf(key);
+                        var fit = fitf(val);
+                        if (first || (fit > best_fit)) {
+                            best_key = key;
+                            best_val = val;
+                            best_fit = fit;
+                            first = false;
+                        }  
+                    })();
+                }
+                return {key: best_key, val: best_val, fit: best_fit}
+            }
+
+            function Point(x,y) {
+                var point = this
+
+                assert( !isNaN(x) && !isNaN(y) )
+                point.x = x
+                point.y = y
+                point.move = function(bearing,dist) {
+                    var x = point.x + dist*Math.cos(bearing)
+                    var y = point.y + dist*Math.sin(bearing)
+                    return new Point(x,y)
+                }
+                point.reduce = function(width,height) {
+                    while (point.x >= width) { point.x -= width; }
+                    while (point.x < 0) { point.x += width; }
+                    while (point.y >= height) { point.y -= height; }
+                    while (point.y < 0) { point.y += height; }
+                    assert( !isNaN(point.x) && !isNaN(point.y) )
+                }
+
+                point.toricSquareDistance = function(other,width,height) {
+                    var sq = function(k) { return k*k; }
+                    var dist = function(x1,y1,x2,y2) {
+                        return sq(x1-x2) + sq(y1-y2);
+                    }
+                    //point.reduce(width,height);
+                    var x1 = point.x, y1 = point.y
+                    var x2 = other.x, y2 = other.y
+                    var minDist = dist(x1,y1,x2,y2)
+
+                    for (var i = -1; i <= 1; i += 1) {
+                        for (var j = -1; j <= 1; j += 1) {
+                            var x3 = x2+i*width, y3 = y2+j*height
+                            var d = dist(x1,y1,x3,y3)
+                            if (d<minDist) { minDist = d }
+                        }
+                    }
+
+                    return minDist
+                }
+            }
+
+            function App(canvas) {
+                var app = this
+
+                app.canvas = canvas
+                app.ctx = canvas.getContext("2d")
+                app.width = $(app.canvas).innerWidth()
+                app.height = $(app.canvas).innerHeight()
+                app.goons = [];
+                
+                var N = 100;
+                var interestMin = 100, interestMax = 200;
+                var bearingMax = 100;
+                var control = 5
+
+                for (var i = 0; i < N; i++) {
+                    app.goons.push({
+                        pt: new Point(randomInt(0,app.width),randomInt(0,app.height)), //new Point(0,0)
+                        interest: randomInt(interestMin,interestMax),
+                        bearing: randomInt(0,bearingMax),
+                        target: (i+1)%N, //randomInt(0,N-1),
+                        avoid: (N+i-1)%N, //randomInt(0,N-1),
+                        speed: 1.0 + randomInt(0,20)/10.0
+                    })
+                }
+
+                app.draw = function() {
+                    app.ctx.fillStyle = "rgba(255, 255, 255, 0.1)"
+                    app.ctx.fillRect(0,0,app.width,app.height)
+                    for (var i in app.goons) {
+                        goon = app.goons[i]
+                        if (i < 3) {
+                            app.ctx.fillStyle= ["#f00","#0f0","#00f"][i]
+                        } else {
+                            app.ctx.fillStyle = "#000"
+                        }
+                        app.ctx.fillRect(goon.pt.x-1, goon.pt.y-1, 2, 2)
+                        /*app.ctx.beginPath()
+                        app.ctx.moveTo(goon.pt.x, goon.pt.y)
+                        target = app.goons[goon.target]
+                        app.ctx.lineTo(target.pt.x, target.pt.y)
+                        app.ctx.strokeStyle="red"
+                        app.ctx.stroke()*/
+                    }
+                }
+                
+                app.update = function () {
+                    for (var i in app.goons) {
+                        var goon = app.goons[i]
+                        /*goon.interest -= 1
+                        if (goon.interest <= 0) {
+                            //goon.target = randomInt(0, N-1)
+                            goon.avoid = randomInt(0, N-1)
+                            goon.interest = randomInt(interestMin, interestMax)
+                        }*/
+                        var target = app.goons[goon.target]
+                        var avoid = app.goons[goon.avoid]
+                        var bearings = []
+                        for (var db = -control; db <= control; db += 1) { bearings.push(goon.bearing+db); }
+                        var sel = select(
+                            bearings,
+                            function (bearing) { 
+                                return goon.pt.move(bearing*2.0*Math.PI/bearingMax, goon.speed); 
+                            },
+                            function (pt) {
+                                //return -pt.squareDistance(target.pt)
+                                return (pt.toricSquareDistance(avoid.pt, app.width, app.height)
+                                           - pt.toricSquareDistance(target.pt, app.width, app.height))
+                            }
+                        );
+                        goon.bearing = sel.key;
+                        goon.pt = sel.val;
+                        goon.pt.reduce(app.width, app.height)                            
+                    }
+                }
+                
+                app.tick = function() {    
+                    app.update()
+                    app.draw()
+                }
+            }
+
+
+            function main() {
+                var canvas = $("canvas")[0]
+                var app = new App(canvas);
+                window.setInterval(function(){ app.tick() },dt)
+            }
+            
+      /*      $(function() {
+                $("body").click(main);
+            }); */
+             $(main);
+
+        //]]></script>
+        <style type="text/css">
+            canvas { border: 1px solid black; }
+        </style>
+    </head>
+    <body>
+        <canvas width="720px" height="720px"></canvas>
+    </body>
+</html>
