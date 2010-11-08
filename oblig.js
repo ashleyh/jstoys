@@ -24,8 +24,7 @@ addToy({
         var data = ctx.createImageData(width,height)
         var workUnits = []
         
-        function render(ux,uy,uw,uh,vx,vy,vw,vh) {
-            var nmax = 10
+        function render(ux,uy,uw,uh,vx,vy,vw,vh,nmax) {
             for (var y = uy; y < uy+uh; y++) {
                 var p = 4*(y*width + ux)
                 for (var x = ux; x < ux+uw; x++) {
@@ -48,13 +47,12 @@ addToy({
                     p += 4
                 }
             }
+            ctx.putImageData(data, 0, 0, ux, uw, uw, uh)
         }
 
         function go() {
             if (workUnits.length > 0) {
-                console.log(workUnits.length)
                 workUnits.shift()()
-                ctx.putImageData(data, 0, 0)
                 window.setTimeout(go, 100)
             }
         }
@@ -76,13 +74,16 @@ addToy({
             workUnits = []
             var dx = width/10
             var dy = height/10
-            for (x = 0; x < width; x += dx) {
-                for (y = 0; y < height; y += dy) {
-                    (function(x0,y0)  {
-                        workUnits.push(
-                            function() { render(x0,y0,dx,dy,vx,vy,vw,vh); }
-                        )
-                    })(x,y)
+            var ns = [10, 50, 100]
+            for (var i in ns) {
+                for (var x = 0; x < width; x += dx) {
+                    for (var y = 0; y < height; y += dy) {
+                        (function(x0,y0,n0)  {
+                            workUnits.push(
+                                function() { render(x0,y0,dx,dy,vx,vy,vw,vh,n0); }
+                            )
+                        })(x,y,ns[i])
+                    }
                 }
             }
             go()
