@@ -76,6 +76,15 @@
                 })(i0) }
             }
 
+            function eventMangler(f) {
+                return function(e) {
+                    var offs = $(this).offset()
+                    e.localX = e.pageX - offs.left
+                    e.localY = e.pageY - offs.top
+                    return f(e)
+                }
+            }
+
             function runToy(id) {
                 var canvas = $("canvas")[0]
                 var context = canvas.getContext("2d")
@@ -86,18 +95,44 @@
                 var obj = new toy.constructor(context, width, height)
                 var dt = 30
 
-                if (interval != null) { window.clearInterval(interval) }
-                interval = window.setInterval(function(){ obj.tick() },dt)
+                // unbind event handlers
+                if (interval != null) {
+                    window.clearInterval(interval)
+                    interval = null
+                }
+                $(canvas).unbind(".toy")
 
+                // bind new event handlers
+                var events = ["click"]
+                for (var i in events) {
+                    var event = events[i]
+                    var handlerName = event + "Handler"
+                    if (handlerName in obj) {
+                        $(canvas).bind(
+                            event+".toy",
+                            eventMangler(obj[handlerName])
+                        )
+                    }
+                }
+                if ("tick" in obj) {
+                    interval = window.setInterval(function(){ obj.tick() },dt)
+                }
+ 
+                // update gui
                 updateList(id)
+                location.hash = "#"+id.toString()
             }
 
             function main() {
-                runToy(0)
+                var h = location.hash
+                var n =parseInt(h.substring(1,h.length))
+                if (isNaN(n)) { n = 0 }
+                runToy(n)
             }
         </script>
         <script type="text/javascript" src="gl1.js"></script>
         <script type="text/javascript" src="goons.js"></script>
+        <script type="text/javascript" src="oblig.js"></script>
         <script type="text/javascript">
             $(main)        
         </script>
@@ -122,6 +157,7 @@
             <div id="stuffs">
 
                 select a toy: <ul id="toylist"></ul>
+                <a href="https://github.com/adgcfad/jstoys">view the source</a>.
             </div>
 
         </div>
