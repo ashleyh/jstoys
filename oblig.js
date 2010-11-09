@@ -24,26 +24,41 @@ addToy({
         var data = ctx.createImageData(width,height)
         var workUnits = []
         
-        function render(ux,uy,uw,uh,vx,vy,vw,vh,nmax) {
+        function render(ux,uy,uw,uh,vx,vy,vw,vh,gr) {
+            var nmax = 255
             for (var y = uy; y < uy+uh; y++) {
                 var p = 4*(y*width + ux)
                 for (var x = ux; x < ux+uw; x++) {
-                    var cx = vx + vw * (x/width)
-                    var cy = vy + vh * (y/height)
-                    var zx = cx
-                    var zy = cy
-                    var n = nmax
-                    while ((n>0) && (zx*zx + zy*zy < 2)) {
-                        wx = zx*zx - zy*zy + cx
-                        wy = 2*zx*zy + cy
-                        zx = wx
-                        zy = wy
-                        n--
+                    if (x%gr != 0) {
+                        var q = p - 4
+                        data.data[p+0] = data.data[q+0]
+                        data.data[p+1] = data.data[q+1]
+                        data.data[p+2] = data.data[q+2]
+                        data.data[p+3] = data.data[q+3]
+                    } else if (y%gr != 0) {
+                        var q = p - 4*width
+                        data.data[p+0] = data.data[q+0]
+                        data.data[p+1] = data.data[q+1]
+                        data.data[p+2] = data.data[q+2]
+                        data.data[p+3] = data.data[q+3]
+                    } else {
+                        var cx = vx + vw * (x/width)
+                        var cy = vy + vh * (y/height)
+                        var zx = cx
+                        var zy = cy
+                        var n = nmax
+                        while ((n>0) && (zx*zx + zy*zy < 2)) {
+                            wx = zx*zx - zy*zy + cx
+                            wy = 2*zx*zy + cy
+                            zx = wx
+                            zy = wy
+                            n--
+                        }
+                        data.data[p+0] = 255*n/nmax
+                        data.data[p+1] = 255*n/nmax
+                        data.data[p+2] = 255*n/nmax
+                        data.data[p+3] = 255
                     }
-                    data.data[p+0] = 255*n/nmax
-                    data.data[p+1] = 255*n/nmax
-                    data.data[p+2] = 255*n/nmax
-                    data.data[p+3] = 255
                     p += 4
                 }
             }
@@ -53,7 +68,11 @@ addToy({
         function go() {
             if (workUnits.length > 0) {
                 workUnits.shift()()
-                window.setTimeout(go, 100)
+                /* i reckon this will allow the browser
+                   to deal with other events, and do that
+                   horrible "this script is taking too long"
+                   thing */
+                window.setTimeout(go, 1)
             }
         }
 
@@ -74,15 +93,15 @@ addToy({
             workUnits = []
             var dx = width/10
             var dy = height/10
-            var ns = [10, 50, 100]
-            for (var i in ns) {
+            var grs = [8,4,2,1]
+            for (var i in grs) {
                 for (var x = 0; x < width; x += dx) {
                     for (var y = 0; y < height; y += dy) {
-                        (function(x0,y0,n0)  {
+                        (function(x0,y0,gr)  {
                             workUnits.push(
-                                function() { render(x0,y0,dx,dy,vx,vy,vw,vh,n0); }
+                                function() { render(x0,y0,dx,dy,vx,vy,vw,vh,gr); }
                             )
-                        })(x,y,ns[i])
+                        })(x,y,grs[i])
                     }
                 }
             }
