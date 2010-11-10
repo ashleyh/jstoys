@@ -21,7 +21,7 @@ addToy({
     constructor: function (ctx, width, height) {
         var app = this
         
-        app.polys = []
+        app.tris = []
         app.matrices = [[],[]]
 
         var MODELVIEW = 0
@@ -76,19 +76,22 @@ addToy({
                     a[0]*b[1] - a[1]*b[0]]
         }
         
-        function applyMatrix(mat, v, out) {
+        function applyMatrix(mat, v) {
+            var out = new Array(4)
             out[0] = mat[0]*v[0] + mat[1]*v[1] + mat[2]*v[2] + mat[3]*v[3]
             out[1] = mat[4]*v[0] + mat[5]*v[1] + mat[6]*v[2] + mat[7]*v[3]
             out[2] = mat[8]*v[0] + mat[9]*v[1] + mat[10]*v[2] + mat[11]*v[3]
             out[3] = mat[12]*v[0] + mat[13]*v[1] + mat[14]*v[2] + mat[15]*v[3]
+            return out
         }
 
-        function transformPoint(point, reg1, reg2) {
-            applyMatrix(app.matrices[MODELVIEW], point, reg1)
-            applyMatrix(app.matrices[PROJECTION], reg1, reg2)
-            n = reg2[3]
-            reg2[0] = (reg2[0]/n + 1)*(app.viewPortW/2)+app.viewPortX
-            reg2[1] = (reg2[1]/n + 1)*(app.viewPortH/2)+app.viewPortY
+        function transformPoint(point) {
+            var q = applyMatrix(app.matrices[MODELVIEW], point)
+            q = applyMatrix(app.matrices[PROJECTION], q)
+            n = q[3]
+            q[0] = (q[0]/n + 1)*(app.viewPortW/2)+app.viewPortX
+            q[1] = (q[1]/n + 1)*(app.viewPortH/2)+app.viewPortY
+            return q
         }
 
         app.perspective = function(fovy, aspect, zNear, zFar) {
@@ -156,7 +159,7 @@ addToy({
 
 
         var ures = 20
-        var vres = 3
+        var vres = 10
         var R = 1.0
         var r = 0.25
 
@@ -188,33 +191,69 @@ addToy({
             return l
         }
 
-        for (var u = 0; u < ures; u++) {
-            app.polys.push(cu(u))
+/*        for (var u = 0; u < ures; u++) {
+            app.tris.push(cu(u))
         }
 
         for (var v = 0; v < vres; v++) {
 //                    app.polys.push(cv(v))
+        }*/
+        
+        for (var u = 0; u < ures; u++) {
+            for (var v = 0; v < vres; v++) {
+                // these are oriented clockwise from outside
+                app.tris.push([
+                    torus(u,v),
+                    torus(u, v+1),
+                    torus(u+1, v+1)
+                ])
+                app.tris.push([
+                    torus(u+1,v+1),
+                    torus(u+1, v),
+                    torus(u, v)
+                ])
+            }
         }
+
+
 
         app.draw = function() {
             ctx.fillStyle = "#fff"
             ctx.fillRect(0,0,width,height)
             ctx.strokeStyle="#000"
-            tmp = [0,0,0,0]
-            out = [0,0,0,0]
             
-            for (i = 0; i < app.polys.length; i++) {
-                poly = app.polys[i]
-                ctx.beginPath()
-                transformPoint(poly[0], tmp, out)
-                ctx.moveTo(out[0], out[1])
-                for (j = 1; j < poly.length; j++) {
-                    transformPoint(poly[j], tmp, out)
-                    ctx.lineTo(out[0], out[1])
+            var tris = []
+
+            for (i = 0; i < app.tris.length; i++) {
+                var tri = app.tris[i]
+                tris.push([
+                    transformPoint(tri[0]),
+                    transformPoint(tri[1]),
+                    transformPoint(tri[2])
+                ])
+            }
+
+/*
+            tris.sort(function(t, u) {
+                var tmax = Math.max(t[0][2], t[1][2], t[2][2])
+                var umin = Math.min(u[0][2], u[1][2], u[2][2])
+                return umin - tmax
+            })*/
+
+            for (i = 0; i < tris.length; i++) {
+                tri = tris[i]
+                // backface culling
+                clock = ((tri[1][0]-tri[0][0])*(tri[2][1]-tri[0][1]) - 
+                         (tri[2][0]-tri[0][0])*(tri[1][1]-tri[0][1]))
+                if (clock <= 0) {
+                    ctx.beginPath()
+                    ctx.moveTo(tri[0][0], tri[0][1])
+                    ctx.lineTo(tri[1][0], tri[1][1])
+                    ctx.lineTo(tri[2][0], tri[2][1])
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.stroke()
                 }
-                ctx.closePath()
-                //ctx.fill()
-                ctx.stroke()
             }
         }
         
@@ -223,7 +262,7 @@ addToy({
             t = 0.01
             app.rotate(t, 1,0,0)
             app.rotate(2*t, 0,1,0)
-            app.rotate(3*t, 0,0,1)
+//            app.rotate(3*t, 0,0,1)
 
         }
         
