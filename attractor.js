@@ -42,7 +42,7 @@ addToy({
             y = 0
         }
 
-        function go() {
+        function worker() {
             
             var N = 10000
 
@@ -83,14 +83,10 @@ addToy({
             if (fillRate < 0.001) { init();}
 
             ctx.putImageData(data, 0, 0)
-            /* i reckon this will allow the browser
-               to deal with other events, and do that
-               horrible "this script is taking too long"
-               thing */
-                window.setTimeout(go, 1)
+            return 1
         }
 
         init()
-        go()
+        startWorker(worker)
     }
 })

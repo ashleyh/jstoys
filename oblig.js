@@ -65,14 +65,12 @@ addToy({
             ctx.putImageData(data, 0, 0, ux, uy, uw, uh)
         }
 
-        function go() {
+        function worker() {
             if (workUnits.length > 0) {
                 workUnits.shift()()
-                /* i reckon this will allow the browser
-                   to deal with other events, and do that
-                   horrible "this script is taking too long"
-                   thing */
-                window.setTimeout(go, 1)
+                return 1
+            } else {
+                return -1
             }
         }
 
@@ -105,7 +103,7 @@ addToy({
                     }
                 }
             }
-            go()
+            startWorker(worker)
         }
 
         draw()

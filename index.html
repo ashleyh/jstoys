@@ -57,7 +57,26 @@
 
             var toys = []
             var interval = null
+            var workTimeout = null
 
+            function startWorker(f) {
+                window.clearTimeout(workTimeout)
+                workTimeout = null
+
+                function cbk() {
+                    if (workTimeout != null) {
+                        var r = f()
+                        if (r > 0) {
+                            workTimeout = window.setTimeout(cbk, r)
+                        }
+                    }
+                }
+
+                if (f != null) {
+                    workTimeout = window.setTimeout(cbk, 1)
+                }
+            }
+    
             function addToy(toy) {
                 toys.push(toy)
             }
@@ -91,16 +110,22 @@
                 var width = $(canvas).innerWidth()
                 var height = $(canvas).innerHeight()
 
-                var toy = toys[id];
-                var obj = new toy.constructor(context, width, height)
-                var dt = 30
 
                 // unbind event handlers
                 if (interval != null) {
                     window.clearInterval(interval)
                     interval = null
                 }
+                startWorker(null)
                 $(canvas).unbind(".toy")
+
+                context.restore()
+                context.save()
+                context.fillRect(0,0,width,height)
+                
+                var toy = toys[id];
+                var obj = new toy.constructor(context, width, height)
+                var dt = 30
 
                 // bind new event handlers
                 var events = ["click"]
