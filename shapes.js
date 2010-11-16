@@ -48,30 +48,44 @@ addToy({
 
         
         function addCircle(x0,y0,r) {
-            for (var y = 0; y < height; y++) {
-                for (var x = 0; x < width; x++) {
-                    var i = y*width + x
-                    var dx = x-x0, dy = y-y0
-                    if (dx*dx + dy*dy < r*r) {
-                        count[i]++
+
+            function line(x1,x2,y1) {
+                if (y1 >= 0 && y1 < height) {
+                    if (x1 < 0) { x1 = 0}
+                    if (x2 >= width) { x2 = width -1 }
+                    var i1 = y1*width + x1
+                    var i2 = y1*width + x2
+                    for (var i = i1; i <= i2; i++) {
+                        count[i] ++
                     }
                 }
             }
+
+            line(x0-r,x0+r,y0)
+
+            for (var dy = 1; dy <= r; dy++) {
+                var dx = Math.round(Math.sqrt(r*r - dy*dy))
+                line(x0-dx, x0+dx, y0-dy)
+                line(x0-dx, x0+dx, y0+dy)
+            }        
         }
 
         function addShape() {
-            var x = Math.random()*width
-            var y = Math.random()*height
-            var r = Math.random()*width/1.5
+            var x = Math.round(Math.random()*width)
+            var y = Math.round(Math.random()*height)
+            var r = Math.round(Math.random()*width/1.5)
             addCircle(x,y,r)
         }
 
-        toy.clickHandler = function(e) {
-            console.log("shape")
-            addShape()
-            console.log("colour")
-            colour()
-            console.log("done")
+        function go() {
+            for (var i = 0; i < 7; i++) {
+                addShape();
+            }
+            colour();
         }
+
+        go();
+
+        toy.clickHandler = function(e) { go(); }
     }
 })
