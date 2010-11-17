@@ -84,9 +84,9 @@ addToy({
             if (toPrune > sprouts.length/4) {
                 var oldSprouts = sprouts
                 sprouts = []
-                for (var i in sprouts) {
-                    var sprout = sprouts[i]
-                    if (sprout.v > 0) {
+                for (var i in oldSprouts) {
+                    var sprout = oldSprouts[i]
+                    if (sprout.v > 0.1) {
                         sprouts.push(sprout)
                     }
                 }
@@ -94,7 +94,7 @@ addToy({
             if (sprouts.length < 5) {
                 addSprout()
             }
-            console.log(sprouts.length)
+            //console.log(sprouts.length)
         }
     }
 })
