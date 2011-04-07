@@ -215,7 +215,7 @@ addToy({
             }
         }
 
-
+        app.backfaceCulling = false
 
         app.draw = function() {
             ctx.fillStyle = "#fff"
@@ -245,13 +245,13 @@ addToy({
                 // backface culling
                 clock = ((tri[1][0]-tri[0][0])*(tri[2][1]-tri[0][1]) - 
                          (tri[2][0]-tri[0][0])*(tri[1][1]-tri[0][1]))
-                if (clock <= 0) {
+                if (clock <= 0 || !app.backfaceCulling) {
                     ctx.beginPath()
                     ctx.moveTo(tri[0][0], tri[0][1])
                     ctx.lineTo(tri[1][0], tri[1][1])
                     ctx.lineTo(tri[2][0], tri[2][1])
                     ctx.closePath()
-                    ctx.fill()
+                    //ctx.fill()
                     ctx.stroke()
                 }
             }

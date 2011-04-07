@@ -62,7 +62,7 @@ addToy({
 
         app.goons = [];
         
-        var N = 100;
+        var N = 5;
         var interestMin = 100, interestMax = 200;
         var bearingMax = 100;
         var control = 5
