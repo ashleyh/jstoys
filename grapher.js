@@ -31,36 +31,19 @@ addToy({
         }
 
         function Interval(min, max) {
-            this.min = min
-            this.max = max
-            this.length = max - min
+            this[0] = min
+            this[1] = max
         }
 
-        Singularity = {
-            add: function(other) {
-                return Singularity
-            },
-
-            scale: function(k) {
-                return Singularity
-            },
-
-            containsLC: function (k) {
-                return true
-            },
-
-            finite: false
-        }
-
+    
         Interval.prototype = {
-            finite: true,
 
             inv: function() {
                 if (this.contains(0)) {
                     return Singularity
                 } else {
-                    var x = 1 / this.min
-                    var y = 1 / this.max
+                    var x = 1 / this[0]
+                    var y = 1 / this[1]
                     return new Interval(
                         Math.min(x, y),
                         Math.max(x, y)
@@ -70,10 +53,10 @@ addToy({
 
 
             mul: function(other) {
-                var xx = this.min * other.min
-                var xy = this.min * other.max
-                var yx = this.max * other.min
-                var yy = this.max * other.max
+                var xx = this[0] * other[0]
+                var xy = this[0] * other[1]
+                var yx = this[1] * other[0]
+                var yy = this[1] * other[1]
                 return new Interval(
                     Math.min(xx, xy, yx, yy),
                     Math.max(xx, xy, yx, yy)
@@ -85,8 +68,8 @@ addToy({
                     return Singularity
                 } else {
                     return new Interval(
-                        this.min + other.min,
-                        this.max + other.max
+                        this[0] + other[0],
+                        this[1] + other[1]
                         )
                 }
             },
@@ -94,14 +77,14 @@ addToy({
 
             translate: function (d) {
                 return new Interval(
-                    this.min + d,
-                    this.max + d
+                    this[0] + d,
+                    this[1] + d
                     )
             },
 
             scale: function (k) {
-                var x = this.min * k
-                var y = this.max * k
+                var x = this[0] * k
+                var y = this[1] * k
                 return new Interval(
                     Math.min(x, y),
                     Math.max(x, y)
@@ -109,24 +92,26 @@ addToy({
             },
 
             randomElement: function () {
-                return this.min + (this.max - this.min)*Math.random()
+                return this[0] + (this[1] - this[0])*Math.random()
             },
 
             contains: function (x) {
-                return (this.min <= x) && (x <= this.max)
+                return (this[0] <= x) && (x <= this[1])
             },
 
             containsInteger: function () {
-                return Math.ceil(this.min) <= Math.floor(this.max)
+                return Math.ceil(this[0]) <= Math.floor(this[1])
             },
 
             /* is there an integer n with this.contains(an + b) */
             containsLC: function(a, b) {
-                return Math.ceil((this.min - b)/a) <=
-                    Math.floor((this.max - b)/a)
+                return Math.ceil((this[0] - b)/a) <=
+                    Math.floor((this[1] - b)/a)
             }
 
         }
+        
+        Singularity = new Interval(-Infinity, Infinity)
         
         function randomInterval() {
             var i = new Interval(-10000000, 10000000)
@@ -157,67 +142,145 @@ addToy({
         }
 
 
-        function Tree(x, y) {
+        function Tree(x, y, children) {
             this.x = x
             this.y = y
             this.im = goal(
                 x.scale(4.0/width).translate(-2.0),
                 y.scale(4.0/width).translate(-2.0)
                 )
-            this.child1 = null
-            this.child2 = null
+            this.children = children
         }
 
-        Tree.prototype.update = function(remainder) {
+        Tree.prototype.draw = function(remainder) {
             var x = this.x
             var y = this.y
             var im = this.im
-            if (im.containsLC(1.0, remainder) &&
-                (x.length > 4 || y.length > 4)) {
+            var xlen = x[1] - x[0]
+            var ylen = y[1] - y[0]
 
-                if (this.child1 === null || this.child2 === null ) {
-
-                    var xm = Math.floor((x.min+x.max) / 2)
-                    var ym = Math.floor((y.min+y.max) / 2)
-                    if (x.length > y.length) {
-                        var x1 = new Interval(x.min, xm)
-                        var x2 = new Interval(xm, x.max)
-                        this.child1 = new Tree(x1, y)
-                        this.child2 = new Tree(x2, y)
+            if (im.containsLC(1.0, remainder)) {
+                var cs = this.children
+                for (var i = 0; i < cs.length; i++) {
+                    var c = cs[i]
+                    if (c === null) {
                     } else {
-                        var y1 = new Interval(y.min, ym)
-                        var y2 = new Interval(ym, y.max)
-                        this.child1 = new Tree(x, y1)
-                        this.child2 = new Tree(x, y2)
+                        c.draw(remainder)
                     }
-
                 }
-
-                this.child1.update(remainder)
-                this.child2.update(remainder)
-
-
-            } else {
-                this.child1 = null
-                this.child2 = null
+ 
             }
-            ctx.strokeRect(x.min, y.min, x.max-x.min, y.max-y.min)
+            ctx.strokeRect(x[0], y[0], xlen, ylen)
+        }
+
+        function split(x, y) {
+            var xlen = x[1] - x[0]
+            var ylen = y[1] - y[0]
+            var xm = Math.floor((x[0]+x[1]) / 2)
+            var ym = Math.floor((y[0]+y[1]) / 2)
+//            if (xlen > ylen) {
+                var x1 = new Interval(x[0], xm)
+                var x2 = new Interval(xm, x[1])
+//                return [x1, y, x2, y]
+//            } else {
+                var y1 = new Interval(y[0], ym)
+                var y2 = new Interval(ym, y[1])
+//                return [x, y1, x, y2]
+//            }
+            return [x1, x2, y1, y2]
+        }
+
+        function buildTree(x, y, depth) {
+            if (depth < 0) {
+                return null
+            } else {
+                var s = split(x, y)
+                return new Tree(
+                    x, y,[
+                    buildTree(s[0], s[2], depth - 1),
+                    buildTree(s[0], s[3], depth - 1),
+                    buildTree(s[1], s[2], depth - 1),
+                    buildTree(s[1], s[3], depth - 1)
+                    ])
+            }
+        }
+
+            function test(x1, y1, x2, y2) {
+                var ix = (new Interval(x1, x2)).scale(4.0/width).translate(-2.0)
+                var iy = (new Interval(y1, y2)).scale(4.0/height).translate(-2.0)
+                return goal(ix, iy)
+            }
+
+        var factor = 60
+
+        var lores = new Array(height/factor)
+
+        for (var y = 0; y < height/factor; y++) {
+            lores[y] = new Array(width/factor)
+            for (var x = 0; x < width/factor; x++) {
+                lores[y][x] = test(x, y, x+factor, y+factor)
+            }
+        }
+
+        var hires = new Array(height)
+
+        for (var y = 0; y < height; y++) {
+            hires[y] = new Array(width)
+            for (var x = 0; x < width; x++) {
+                hires[y][x] = test(x, y, x+1, y+1)
+            }
         }
 
 
+
+
+/*        var lores = new Array((width/factor)*(height/factor))
+        var hires = new Array(width*height)
+
+        for (var i = 0; i < width; i++) {
+            for (var j = 0; j < height; j++) {
+                var x = (new Interval(i, i+1)).scale(4.0/width).translate(-2.0)
+                var y = (new Interval(j, j+1)).scale(4.0/height).translate(-2.0)
+                hires[
+*/
+
         var remainder = 0.0
 
-        var root = new Tree(
+        var root = buildTree(
             new Interval(0, width),
-            new Interval(0, height)
+            new Interval(0, height),
+            6
             )
 
         this.tick = function() {
             ctx.fillStyle = "white"
             ctx.fillRect(0, 0, width, height)
             ctx.strokeStyle = "black"
+  //          root.draw(remainder)
 
-            root.update(remainder)
+
+            var data = ctx.getImageData(0,0,width,height)
+
+            for (var xl = 0; xl < width; xl += factor) {
+                for (var yl = 0; yl < height; yl += factor) {
+                    console.log(lores[yl/factor][xl/factor])
+                    if (lores[yl/factor][xl/factor].containsLC(1.0, remainder)) {
+                        for (var xh = 0; xh < factor; xh++) {
+                            for (var yh = 0; yh < factor; yh++) {
+                                if (hires[yl+yh][xl+xh].containsLC(1.0, remainder)) {
+                                    i = (yl+yh)*width + xl + xh
+                                    data.data[4*i+0] = 0
+                                    data.data[4*i+1] = 0
+                                    data.data[4*i+2] = 0
+                                    data.data[4*i+3] = 255
+                                }
+                            }
+                        }
+                    }
+                 }
+             }
+
+            ctx.putImageData(data, 0, 0)
 
 /*            var trees = [root]
 
